@@ -1,31 +1,10 @@
-# [DEPRECATED] NEAR CLI (command line interface)
+# NLITE
 
-This project will no longer receive any updates.
-We strongly recommend everyone to migrate to [`near-cli-rs`](https://github.com/near/near-cli-rs) instead.
+You should not be using this, use [`near-cli-rs`](https://github.com/near/near-cli-rs) instead.
 
 ---
 
-NEAR CLI is a Node.js application that relies on [`near-api-js`](https://github.com/near/near-api-js) to connect to and interact with the NEAR blockchain. Create accounts, access keys, sign & send transactions with this versatile command line interface tool.
-
-**Note:** Node.js version 16+ is required to run NEAR CLI.
-
-## 🚨 v4.0.0 Notes
-This release is a major reorganization of the codebase to simplify its maintenance. It also includes a few new features and a multitude of small fixes.
-
-The most notable changes are:
-- **Ledger users**, please notice that the `--useLedger` does not set the path anymore, use `--ledgerPath` for this
-  - Please check the commands that support Ledger for more details
-- Users can now import credentials using the `add-credentials` command
-- The `generate-key` command now has a `--saveImplicit` option to save the key as an implicit account
-- Users can create `testnet` pre-funded accounts using the `--useFaucet` option 
-- Accounts cannot create `TLA` with less than 32 characters anymore (this is a NEAR protocol change)
-- Removed unnecessary options from commands, e.g. `view` now does not take an `--accountId` or `--masterAccount`
-- If a command does not work, please first check the commands help to see if the options have changed
-  - For example, run `near create-account` to see how options might have changed
-
-## Release notes
-
-Release notes and unreleased changes can be found in the [CHANGELOG](CHANGELOG.md)
+NLITE is a Node.js application that relies on [`near-api-js`](https://github.com/near/near-api-js) to connect to and interact with the NEAR blockchain. Create accounts, access keys, sign & send transactions with this versatile command line interface tool.
 
 ## Overview
 
@@ -56,58 +35,9 @@ _Click on a command for more information and examples._
 
 ---
 
-## Setup
-
-### Installation
-
-> Make sure you have a current version of `npm` and `NodeJS` installed.
-
-#### Mac and Linux
-
-1. Install `npm` and `node` using a package manager like `nvm` as sometimes there are issues using Ledger due to how OS X handles node packages related to USB devices. [[click here]](https://nodejs.org/en/download/package-manager/)
-2. Ensure you have installed Node version 12 or above.
-3. Install `near-cli` globally by running:
-
-```bash
-npm install -g near-cli
-```
-
-For example, on Ubuntu 20.04 `near-cli` can be installed by running:
-```bash
-# Install nvm (https://github.com/nvm-sh/nvm?tab=readme-ov-file#installing-and-updating)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-source ~/.bashrc
-
-# Install node
-nvm install node
-
-# Install near-cli
-npm install -g near-cli
-
-# near-cli works!
-near --help
-```
-
-#### Windows
-
-> For Windows users, we recommend using Windows Subsystem for Linux (`WSL`).
-
-1. Install `WSL` [[click here]](https://docs.microsoft.com/en-us/windows/wsl/install-manual#downloading-distros)
-2. Install `npm` [[click here]](https://www.npmjs.com/get-npm)
-3. Install ` Node.js` [ [ click here ]](https://nodejs.org/en/download/package-manager/)
-4. Change `npm` default directory [ [ click here ] ](https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally#manually-change-npms-default-directory)
-    - This is to avoid any permission issues with `WSL`
-5. Open `WSL` and install `near-cli` globally by running:
-
-```bash
-npm install -g near-cli
-```
-
----
-
 ### Network selection
 
-> The default network for `near-cli` is `testnet`.
+> The default network for `nlite` is `testnet`.
 
 - You can change the network by prepending an environment variable to your command.
 
@@ -128,7 +58,7 @@ near send-near ... --networkId mainnet
 ```
 
 > [!WARNING]
-> In previous versions, `near-cli` used `NEAR_ENV` to set the network. This can still be used, but `NEAR_NETWORK` has priority over `NEAR_ENV` if both are set.
+> In previous versions, `nlite` used `NEAR_ENV` to set the network. This can still be used, but `NEAR_NETWORK` has priority over `NEAR_ENV` if both are set.
 
 ---
 
