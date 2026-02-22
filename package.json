@@ -1,34 +1,32 @@
 {
-  "name": "near-cli",
+  "name": "nlite",
   "version": "4.0.13",
+  "type": "module",
   "description": "Simple CLI for interacting with NEAR Protocol",
-  "engines": {
-    "node": ">= 16"
+  "main": "dist/src/cli.js",
+  "bin": {
+    "nlite": "bin/nlite.js"
   },
-  "main": "bin/near-cli.js",
   "scripts": {
     "pretest": "rm -rf tmp-project",
-    "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "jest",
-    "test:integration": "bash ./test/index.sh",
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && bash ./test/index.sh",
     "lint": "eslint .",
     "fix": "eslint . --fix",
-    "start": "node bin/near-cli.js"
+    "start": "node dist/src/cli.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/near/near-cli.git"
+    "url": "git+https://github.com/gagdiez/nlite.git"
   },
-  "author": "Jane Degtiareva",
+  "author": "Guille",
   "license": "(MIT AND Apache-2.0)",
   "bugs": {
-    "url": "https://github.com/near/near-cli/issues"
+    "url": "https://github.com/gagdiez/nlite/issues"
   },
-  "homepage": "https://github.com/near/near-cli#readme",
-  "bin": {
-    "near": "bin/near"
-  },
+  "homepage": "https://github.com/gagdiez/nlite#readme",
   "devDependencies": {
+    "@types/node": "^22.13.9",
     "danger": "^11.3.1",
     "eslint": "^8.56.0",
     "jest": "^29.7.0",
@@ -36,35 +34,18 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@ledgerhq/hw-transport-node-hid": "^6.28.4",
+    "@ledgerhq/hw-transport-node-hid": "^6.30",
     "ascii-table": "^0.0.9",
-    "bs58": "^5.0.0",
-    "chalk": "^4.1.2",
-    "flagged-respawn": "^2.0.0",
-    "is-ci": "^3.0.1",
-    "near-api-js": "^3.0.2",
+    "chalk": "^5",
+    "near-api-js": "^7",
     "near-ledger-js": "^0.2.1",
-    "near-seed-phrase": "^0.2.0",
-    "open": "^8.4.2",
-    "stoppable": "^1.1.0",
-    "tcp-port-used": "^1.0.2",
-    "update-notifier": "^5.1.0",
-    "v8flags": "^4.0.1",
-    "yargs": "^17.7.2"
+    "yargs": "^18"
   },
   "keywords": [
-    "blockchain",
-    "crypto",
-    "dapps",
-    "distributed",
-    "applications",
-    "distributed applications"
+    "near"
   ],
   "files": [
     "bin",
-    "commands",
-    "middleware",
-    "utils",
-    "config.js"
+    "dist"
   ]
 }

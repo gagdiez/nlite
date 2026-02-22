@@ -11,7 +11,7 @@ function getConfig(env) {
     case 'mainnet':
         config = {
             networkId: 'mainnet',
-            nodeUrl: process.env.NEAR_MAINNET_RPC || 'https://rpc.mainnet.near.org',
+            nodeUrl: process.env.NEAR_MAINNET_RPC || 'https://free.rpc.fastnear.com',
             walletUrl: process.env.NEAR_MAINNET_WALLET || 'https://app.mynearwallet.com',
             helperUrl: 'https://helper.mainnet.near.org',
             helperAccount: 'near',
