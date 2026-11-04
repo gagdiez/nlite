@@ -29,7 +29,7 @@ fi
 
 
 # Can create an account with a given public key & balance
-./bin/nlite.js create-account sub.$testaccount1 --accountId $testaccount1 --publicKey "78MziB9aTNsu19MHHVrfWy762S5mAqXgCB6Vgvrv9uGV"  --initialBalance 0.01
+./bin/nlite.js create-account sub.$testaccount1 --accountId $testaccount1 --publicKey "ed25519:78MziB9aTNsu19MHHVrfWy762S5mAqXgCB6Vgvrv9uGV"  --initialBalance 0.01
 
 RESULT=$(./bin/nlite.js list-keys sub.$testaccount1)
 EXPECTED=".*78MziB9aTNsu19MHHVrfWy762S5mAqXgCB6Vgvrv9uGV.*"
@@ -55,10 +55,11 @@ fi
 # An account can create zero-balance accounts
 ./bin/nlite.js create-account $zerobalance --accountId $testaccount1 --initialBalance 0
 
-set +e
-
 # Cannot create sub-accounts of other accounts
-ERROR=$(./bin/nlite.js create-account sub.$testaccount2 --accountId $testaccount1 2>&1)
+if ERROR=$(./bin/nlite.js create-account sub.$testaccount2 --accountId $testaccount1 2>&1); then
+    echo FAILURE Expected creating a sub-account of another account to fail
+    exit 1
+fi
 EXPECTED_ERROR=".*can only create.*"
 if [[ ! "$ERROR" =~ $EXPECTED_ERROR ]]; then
     echo FAILURE - Unexpected output creating a sub-account of another account
@@ -68,8 +69,11 @@ if [[ ! "$ERROR" =~ $EXPECTED_ERROR ]]; then
 fi
 
 # Cannot use a non-existing account to fund another
-ERROR=$(./bin/nlite.js create-account $testaccount3 --accountId test.far 2>&1)
-EXPECTED_ERROR=".+do not have the credentials locally.+"
+if ERROR=$(./bin/nlite.js create-account $testaccount3 --accountId test.far 2>&1); then
+    echo FAILURE Expected creating an account with a missing funder to fail
+    exit 1
+fi
+EXPECTED_ERROR="(Credentials not found|Credential path does not exist)"
 if [[ ! "$ERROR" =~ $EXPECTED_ERROR ]]; then
     echo FAILURE - Unexpected output creating account with an unexisting master account
     echo Got: $ERROR
@@ -78,8 +82,11 @@ if [[ ! "$ERROR" =~ $EXPECTED_ERROR ]]; then
 fi
 
 # Cannot create a TLA with a short name
-ERROR=$(./bin/nlite.js create-account tooshortfortla --accountId $testaccount1 2>&1)
-EXPECTED_ERROR=".+cannot create Top Level Accounts.+"
+if ERROR=$(./bin/nlite.js create-account tooshortfortla --accountId $testaccount1 2>&1); then
+    echo FAILURE Expected creating a short top-level account to fail
+    exit 1
+fi
+EXPECTED_ERROR=".+can only create sub-accounts of itself, or accounts of the form.+"
 if [[ ! "$ERROR" =~ $EXPECTED_ERROR ]]; then
     echo FAILURE Unexpected output when creating a short top-level account
     echo Got: $ERROR
@@ -88,8 +95,11 @@ if [[ ! "$ERROR" =~ $EXPECTED_ERROR ]]; then
 fi
 
 # Cannot create a TLA with a long name
-ERROR=$(./bin/nlite.js create-account $tla --accountId $testaccount1 2>&1)
-EXPECTED_ERROR=".+cannot create Top Level Accounts.+"
+if ERROR=$(./bin/nlite.js create-account $tla --accountId $testaccount1 2>&1); then
+    echo FAILURE Expected creating a long top-level account to fail
+    exit 1
+fi
+EXPECTED_ERROR=".+can only create sub-accounts of itself, or accounts of the form.+"
 if [[ ! "$ERROR" =~ $EXPECTED_ERROR ]]; then
     echo FAILURE Unexpected output when creating a long top-level account
     echo Got: $ERROR
@@ -98,7 +108,10 @@ if [[ ! "$ERROR" =~ $EXPECTED_ERROR ]]; then
 fi
 
 # Cannot create a useFaucet account in mainnet
-ERROR=$(./bin/nlite.js create-account $testaccount4 --useFaucet --networkId mainnet 2>&1)
+if ERROR=$(./bin/nlite.js create-account $testaccount4 --useFaucet --networkId mainnet 2>&1); then
+    echo FAILURE Expected mainnet faucet creation to fail
+    exit 1
+fi
 EXPECTED_ERROR=".+Pre-funding accounts is not possible on mainnet.+"
 if [[ ! "$ERROR" =~ $EXPECTED_ERROR ]]; then
     echo FAILURE Unexpected output when funding pre-funded account in mainnet
@@ -108,7 +121,10 @@ if [[ ! "$ERROR" =~ $EXPECTED_ERROR ]]; then
 fi
 
 # Proper error message when account does not have enough balance
-ERROR=$(./bin/nlite.js create-account $testaccount4 --accountId $zerobalance --initialBalance 0.1 2>&1)
+if ERROR=$(./bin/nlite.js create-account $testaccount4 --accountId $zerobalance --initialBalance 0.1 2>&1); then
+    echo FAILURE Expected creation with insufficient balance to fail
+    exit 1
+fi
 EXPECTED_ERROR=".+does not have enough balance.+"
 if [[ ! "$ERROR" =~ $EXPECTED_ERROR ]]; then
     echo FAILURE Unexpected output when creating a short top-level account

@@ -1,9 +1,9 @@
-import { Account, JsonRpcProvider } from 'near-api-js';
+import { Account } from 'near-api-js';
 import { AccountDoesNotExistError } from 'near-api-js/rpc-errors';
-import { createInterface } from 'node:readline/promises';
-import { stdin as input, stdout as output } from 'node:process';
-import { DEFAULT_NETWORK, getConfig } from '../../../config.js';
+import { DEFAULT_NETWORK, getProvider } from '../../../config.js';
 import { signerFromOpts } from '../../utils.js';
+import { privateKeyOption } from '../../validation.js';
+import { confirmAll } from '../../confirm.js';
 const deleteCommand = {
     command: 'delete-account <accountId> <beneficiaryId>',
     aliases: ['delete'],
@@ -19,22 +19,7 @@ const deleteCommand = {
         type: 'string',
         demandOption: true
     })
-        .option('signWithLedger', {
-        alias: ['useLedgerKey'],
-        desc: 'Use Ledger for signing',
-        type: 'boolean',
-        default: false
-    })
-        .option('ledgerPath', {
-        desc: 'HD key path',
-        type: 'string',
-        default: "44'/397'/0'/0'/1'"
-    })
-        .option('privateKey', {
-        desc: 'Access key to use in the transaction',
-        type: 'string',
-        default: null
-    })
+        .option('privateKey', privateKeyOption)
         .option('networkId', {
         desc: 'Which network to use. Supports: mainnet, testnet, custom',
         type: 'string',
@@ -48,18 +33,13 @@ const deleteCommand = {
     handler: (argv) => deleteAccount(argv)
 };
 async function confirmDelete(accountId, beneficiaryId) {
-    const rl = createInterface({ input, output });
-    try {
-        const answer = await rl.question(`This will delete ${accountId}, transferring remaining NEAR to ${beneficiaryId}. ` +
-            'FTs, NFTs and other assets are not transferred and may be lost. Continue? (y/n) ');
-        return ['y', 'yes'].includes(answer.trim().toLowerCase());
-    }
-    finally {
-        rl.close();
-    }
+    return confirmAll([
+        `This will delete ${accountId}, transferring remaining NEAR to ${beneficiaryId}. ` +
+            'FTs, NFTs and other assets are not transferred and may be lost. Continue?'
+    ]);
 }
 async function deleteAccount(options) {
-    const provider = new JsonRpcProvider({ url: getConfig(options.networkId).nodeUrl ?? '' });
+    const provider = getProvider(options.networkId);
     try {
         await provider.viewAccount({ accountId: options.beneficiaryId });
     }

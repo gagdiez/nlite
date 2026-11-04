@@ -1,6 +1,6 @@
 import type { ArgumentsCamelCase, CommandModule } from 'yargs';
-import { JsonRpcProvider, yoctoToNear } from 'near-api-js';
-import { DEFAULT_NETWORK, getConfig } from '../../../config.js';
+import { yoctoToNear } from 'near-api-js';
+import { DEFAULT_NETWORK, getProvider } from '../../../config.js';
 
 type StateOptions = {
   accountId: string;
@@ -26,7 +26,7 @@ const stateCommand: CommandModule<object, StateOptions> = {
 };
 
 async function viewAccountState(options: StateOptions): Promise<void> {
-  const provider = new JsonRpcProvider({ url: getConfig(options.networkId).nodeUrl ?? '' });
+  const provider = getProvider(options.networkId);
   const state = await provider.viewAccount({ accountId: options.accountId });
   const enrichedState: Record<string, unknown> = { ...state };
   enrichedState.formattedAmount = yoctoToNear(state.amount);

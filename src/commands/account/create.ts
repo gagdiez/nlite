@@ -9,24 +9,20 @@ import {
 } from 'near-api-js';
 import { parseSeedPhrase } from 'near-api-js/seed-phrase';
 import { AccountDoesNotExistError, CreateAccountNotAllowedActionError, CreateAccountOnlyByRegistrarActionError, NotEnoughBalanceError } from 'near-api-js/rpc-errors';
-import { DEFAULT_NETWORK, getConfig } from '../../../config.js';
-import { LedgerSigner } from '../../signers/ledger.js';
-import { signerFromOpts, storeCredentials } from '../../utils.js';
+import { DEFAULT_NETWORK, getProvider, getConfig } from '../../../config.js';
+import { signerFromOpts, prepareAccountCredentials } from '../../utils.js';
+import { publicKey, privateKeyOption, seedPhrase } from '../../validation.js';
 import chalk from 'chalk';
 
 const network2TLA: Record<string, string> = { testnet: 'testnet', mainnet: 'near' };
 
 type CreateOptions = {
     newAccountId: string;
-    useFaucet: boolean;
+    useFaucet?: boolean;
     useAccount?: string;
     initialBalance: string;
     publicKey?: string;
     seedPhrase?: string;
-    signWithLedger?: boolean;
-    ledgerPath: string;
-    useLedgerPK: boolean;
-    PkLedgerPath: string;
     networkId: string;
     privateKey?: string | null;
 };
@@ -45,7 +41,6 @@ const createCommand: CommandModule<object, CreateOptions> = {
             .option('useFaucet', {
                 desc: 'Pre-fund and create through helper service (testnet only)',
                 type: 'boolean',
-                default: false
             })
             .option('useAccount', {
                 alias: ['accountId', 'masterAccount'],
@@ -59,43 +54,26 @@ const createCommand: CommandModule<object, CreateOptions> = {
             })
             .option('publicKey', {
                 desc: 'Public key to initialize the account with',
-                type: 'string'
+                type: 'string',
+                coerce: publicKey
             })
             .option('seedPhrase', {
                 desc: "Seed phrase from which to derive the account's key",
-                type: 'string'
-            })
-            .option('signWithLedger', {
-                alias: ['useLedgerKey'],
-                desc: 'Use Ledger for signing',
-                type: 'boolean',
-                default: false
-            })
-            .option('ledgerPath', {
-                desc: 'Path to the Ledger key used for signing',
                 type: 'string',
-                default: "44'/397'/0'/0'/1'"
+                coerce: seedPhrase
             })
-            .option('useLedgerPK', {
-                alias: ['newLedgerKey'],
-                desc: 'Initialize the new account with a public key from Ledger',
-                type: 'boolean',
-                default: false
-            })
-            .option('PkLedgerPath', {
-                desc: 'Path to the Ledger key that will be added to the new account',
-                type: 'string',
-                default: "44'/397'/0'/0'/1'"
-            })
-            .option('privateKey', {
-                desc: 'Access key to use for signing with --useAccount',
-                type: 'string',
-                default: null
-            })
+            .option('privateKey', privateKeyOption)
             .option('networkId', {
                 desc: 'Which network to use. Supports: mainnet, testnet, custom',
                 type: 'string',
                 default: DEFAULT_NETWORK
+            })
+            .conflicts('publicKey', 'seedPhrase')
+            .conflicts('useFaucet', 'useAccount')
+            .check(argv => {
+                if (!argv.useFaucet && !argv.useAccount) throw new Error('Please specify either --useFaucet or --useAccount');
+                if (argv.useFaucet && argv.networkId === 'mainnet') throw new Error('Pre-funding accounts is not possible on mainnet');
+                return true;
             }),
     handler: (argv: ArgumentsCamelCase<CreateOptions>) => createAccount(argv)
 };
@@ -141,25 +119,16 @@ async function createWithFaucet(options: CreateOptions, publicKey: string) {
 }
 
 async function createAccount(options: CreateOptions): Promise<void> {
-    const provider = new JsonRpcProvider({ url: getConfig(options.networkId).nodeUrl ?? '' });
+    const provider = getProvider(options.networkId);
 
     if (!options.useFaucet && !options.useAccount) {
         throw new Error('Please specify either --useFaucet or --useAccount');
-    }
-
-    if (options.useLedgerPK && options.publicKey) {
-        throw new Error('Please specify only one of --useLedgerPK or --publicKey');
     }
 
     await assertAccountDoesNotExist(options.newAccountId, provider);
 
     let generatedKeyPair: KeyPair | null = null;
     let accountPublicKey = options.publicKey;
-
-    if (options.useLedgerPK) {
-        const ledgerSigner = new LedgerSigner(options.PkLedgerPath);
-        accountPublicKey = (await ledgerSigner.getPublicKey()).toString();
-    }
 
     if (options.seedPhrase) {
         const parsed = parseSeedPhrase(options.seedPhrase);
@@ -172,27 +141,24 @@ async function createAccount(options: CreateOptions): Promise<void> {
         accountPublicKey = generatedKeyPair.getPublicKey().toString();
     }
 
-    let createPromise: Promise<unknown>;
-
-    if (options.useFaucet) {
-        createPromise = createWithFaucet(options, accountPublicKey);
-    } else {
-        const signer = await signerFromOpts({ ...options, useAccount: options.useAccount! });
-
-        const account = new Account(options.useAccount!, provider, signer);
-
-        createPromise = account.createAccount({
-            newAccountId: options.newAccountId,
-            publicKey: PublicKey.from(accountPublicKey),
-            nearToTransfer: nearToYocto(options.initialBalance as `${number}`),
-        });
-    }
+    const signer = options.useFaucet ? undefined : await signerFromOpts({ ...options, useAccount: options.useAccount! });
+    // Save a recovery copy before sending anything. A timeout does not mean creation failed on-chain.
+    const pending = generatedKeyPair ? prepareAccountCredentials(options.newAccountId, options.networkId, generatedKeyPair) : undefined;
 
     try {
-        await createPromise;
+        if (options.useFaucet) {
+            await createWithFaucet(options, accountPublicKey);
+        } else {
+            const account = new Account(options.useAccount!, provider, signer);
+            await account.createAccount({
+                newAccountId: options.newAccountId,
+                publicKey: PublicKey.from(accountPublicKey),
+                nearToTransfer: nearToYocto(options.initialBalance as `${number}`),
+            });
+        }
 
-        if (generatedKeyPair) {
-            storeCredentials(options.newAccountId, options.networkId, generatedKeyPair);
+        if (pending) {
+            pending.commit();
         } else {
             console.log('Public key was provided, so we are not storing credentials (since we don\'t have the private key)');
             console.log('If you have the private key, you can import it using `near add-credentials`');
@@ -202,6 +168,9 @@ async function createAccount(options: CreateOptions): Promise<void> {
             await provider.viewAccount({ accountId: options.newAccountId });
         }
     } catch (error) {
+        if (pending && !pending.committed) {
+            console.error(`The key for this creation attempt is preserved at ${pending.path}. Keep it until you confirm the account's status.`);
+        }
         if (error instanceof CreateAccountNotAllowedActionError) {
             console.error(chalk`${options.useAccount} can only create sub-accounts of itself, or .${network2TLA[options.networkId]} accounts.\n`);
             process.exit(1);

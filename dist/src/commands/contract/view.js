@@ -1,6 +1,5 @@
-import { JsonRpcProvider } from 'near-api-js';
 import { AccountDoesNotExistError } from 'near-api-js/rpc-errors';
-import { DEFAULT_NETWORK, getConfig } from '../../../config.js';
+import { DEFAULT_NETWORK, getProvider } from '../../../config.js';
 const viewCommand = {
     command: 'view <contractName> <methodName> [args]',
     describe: 'Call a read-only method in a contract',
@@ -28,8 +27,7 @@ const viewCommand = {
     handler: (argv) => callViewFunction(argv)
 };
 async function callViewFunction(options) {
-    const config = getConfig(options.networkId);
-    const provider = new JsonRpcProvider({ url: config.nodeUrl ?? '' });
+    const provider = getProvider(options.networkId);
     try {
         if (!options.quiet) {
             console.log(`View call: ${options.contractName}.${options.methodName}(${options.args || ''})`);

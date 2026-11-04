@@ -1,2 +1,2 @@
 overrides:
-  near-api-js: link:../../Library/pnpm/global/5/node_modules/near-api-js
+  near-api-js: link:../near-api-js

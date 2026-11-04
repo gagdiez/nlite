@@ -1,7 +1,6 @@
 import type { ArgumentsCamelCase, CommandModule } from 'yargs';
-import { JsonRpcProvider } from 'near-api-js';
 import { AccountDoesNotExistError } from 'near-api-js/rpc-errors';
-import { DEFAULT_NETWORK, getConfig } from '../../../config.js';
+import { DEFAULT_NETWORK, getProvider } from '../../../config.js';
 
 type ViewOptions = {
   contractName: string;
@@ -40,8 +39,7 @@ const viewCommand: CommandModule<object, ViewOptions> = {
 };
 
 async function callViewFunction(options: ViewOptions): Promise<void> {
-  const config = getConfig(options.networkId);
-  const provider = new JsonRpcProvider({ url: config.nodeUrl ?? '' });
+  const provider = getProvider(options.networkId);
 
   try {
     if (!options.quiet) {

@@ -2,6 +2,7 @@ import {  KeyPair, type KeyPairString, KeyPairSigner } from 'near-api-js';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { privateKey } from '../validation.js';
 
 /**
  * Signs using local credentials stored in the .near-credentials directory.
@@ -19,7 +20,7 @@ import path from 'path';
 export class LegacyKeyStoreSigner extends KeyPairSigner {
     constructor(accountId: string, networkId: 'testnet' | 'mainnet' = 'testnet') {
         
-        let localCredentialsPath = path.join(os.homedir(), '.near-credentials', networkId);
+        const localCredentialsPath = path.join(os.homedir(), '.near-credentials', networkId);
         if (!fs.existsSync(localCredentialsPath)) {
             throw new Error(`Credential path does not exist: ${localCredentialsPath}`);
         }
@@ -34,7 +35,7 @@ export class LegacyKeyStoreSigner extends KeyPairSigner {
             throw new Error(`Invalid credential file format at: ${credentialFile}`);
         }
 
-        const keyPair = KeyPair.fromString(credentialData.private_key as KeyPairString);
+        const keyPair = KeyPair.fromString(privateKey(credentialData.private_key) as KeyPairString);
         super(keyPair);
     }
 }

@@ -1,5 +1,4 @@
-import { JsonRpcProvider } from 'near-api-js';
-import { DEFAULT_NETWORK, getConfig } from '../../../config.js';
+import { DEFAULT_NETWORK, getProvider } from '../../../config.js';
 const listKeysCommand = {
     command: 'list-keys <accountId>',
     aliases: ['keys'],
@@ -18,7 +17,7 @@ const listKeysCommand = {
     handler: (argv) => viewAccessKeys(argv)
 };
 async function viewAccessKeys(options) {
-    const provider = new JsonRpcProvider({ url: getConfig(options.networkId).nodeUrl ?? '' });
+    const provider = getProvider(options.networkId);
     const accessKeys = await provider.viewAccessKeyList({ accountId: options.accountId });
     console.log(`Keys for account ${options.accountId}`);
     console.log(JSON.stringify(accessKeys, (_, value) => typeof value === 'bigint' ? value.toString() : value, 2));

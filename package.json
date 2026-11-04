@@ -1,6 +1,6 @@
 {
   "name": "nlite",
-  "version": "4.0.13",
+  "version": "1.0.0",
   "type": "module",
   "description": "Simple CLI for interacting with NEAR Protocol",
   "main": "dist/src/cli.js",
@@ -10,7 +10,8 @@
   "scripts": {
     "pretest": "rm -rf tmp-project",
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && bash ./test/index.sh",
+    "test": "npm run test:unit && bash ./test/index.sh",
+    "test:unit": "npm run build && node --test test/*.test.mjs",
     "lint": "eslint .",
     "fix": "eslint . --fix",
     "start": "node dist/src/cli.js"
@@ -26,20 +27,18 @@
   },
   "homepage": "https://github.com/gagdiez/nlite#readme",
   "devDependencies": {
-    "@types/node": "^22.13.9",
-    "danger": "^11.3.1",
-    "eslint": "^8.56.0",
-    "jest": "^29.7.0",
-    "lodash": "^4.17.21",
-    "typescript": "^5.3.3"
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.6",
+    "@types/yargs": "^17.0.35",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1"
   },
   "dependencies": {
-    "@ledgerhq/hw-transport-node-hid": "^6.30",
-    "ascii-table": "^0.0.9",
-    "chalk": "^5",
-    "near-api-js": "^7",
-    "near-ledger-js": "^0.2.1",
-    "yargs": "^18"
+    "chalk": "^6.0.1",
+    "near-api-js": "^7.4.0",
+    "yargs": "^18.2.0"
   },
   "keywords": [
     "near"
@@ -47,5 +46,8 @@
   "files": [
     "bin",
     "dist"
-  ]
+  ],
+  "engines": {
+    "node": "^22.22.2 || >=24.0.0"
+  }
 }

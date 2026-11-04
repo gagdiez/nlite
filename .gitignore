@@ -4,3 +4,4 @@ tmp-project
 package-lock.json
 .idea
 neardev/dev-account*
+.env*

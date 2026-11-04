@@ -1,5 +1,5 @@
-import { JsonRpcProvider, yoctoToNear } from 'near-api-js';
-import { DEFAULT_NETWORK, getConfig } from '../../../config.js';
+import { yoctoToNear } from 'near-api-js';
+import { DEFAULT_NETWORK, getProvider } from '../../../config.js';
 const stateCommand = {
     command: 'state <accountId>',
     describe: "View account's state (balance, storage usage, code hash, etc)",
@@ -17,7 +17,7 @@ const stateCommand = {
     handler: (argv) => viewAccountState(argv)
 };
 async function viewAccountState(options) {
-    const provider = new JsonRpcProvider({ url: getConfig(options.networkId).nodeUrl ?? '' });
+    const provider = getProvider(options.networkId);
     const state = await provider.viewAccount({ accountId: options.accountId });
     const enrichedState = { ...state };
     enrichedState.formattedAmount = yoctoToNear(state.amount);

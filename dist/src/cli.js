@@ -7,6 +7,13 @@ import stateCommand from './commands/account/state.js';
 import deleteAccountCommand from './commands/account/delete.js';
 import createAccountCommand from './commands/account/create.js';
 import listKeysCommand from './commands/keys/list.js';
+import addKeyCommand from './commands/keys/add.js';
+import deleteKeyCommand from './commands/keys/delete.js';
+import addCredentialsCommand from './commands/credentials/add.js';
+import generateKeyCommand from './commands/credentials/generate.js';
+import storageCommand from './commands/contract/storage.js';
+import sendCommand from './commands/transactions/send.js';
+import statusCommand from './commands/transactions/status.js';
 yargs(hideBin(process.argv))
     .strict()
     .scriptName('nlite')
@@ -17,6 +24,13 @@ yargs(hideBin(process.argv))
     .command(deleteAccountCommand)
     .command(createAccountCommand)
     .command(listKeysCommand)
+    .command(addKeyCommand)
+    .command(deleteKeyCommand)
+    .command(addCredentialsCommand)
+    .command(generateKeyCommand)
+    .command(storageCommand)
+    .command(sendCommand)
+    .command(statusCommand)
     .option('quiet', {
     alias: ['q'],
     desc: 'Suppresses extra output',

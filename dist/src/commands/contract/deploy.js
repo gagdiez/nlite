@@ -1,9 +1,9 @@
-import { Account, actions, JsonRpcProvider, nearToYocto, teraToGas } from 'near-api-js';
-import { createInterface } from 'node:readline/promises';
-import { stdin as input, stdout as output } from 'node:process';
+import { Account, actions, nearToYocto, teraToGas } from 'near-api-js';
 import fs from 'node:fs';
-import { DEFAULT_NETWORK, getConfig } from '../../../config.js';
+import { DEFAULT_NETWORK, getProvider } from '../../../config.js';
 import { signerFromOpts } from '../../utils.js';
+import { privateKeyOption } from '../../validation.js';
+import { confirmAll } from '../../confirm.js';
 const deployCommand = {
     command: 'deploy <accountId> <wasmFile>',
     describe: 'Deploy a contract to an existing account (optionally initializing it)',
@@ -36,22 +36,7 @@ const deployCommand = {
         type: 'string',
         default: '0'
     })
-        .option('signWithLedger', {
-        alias: ['useLedgerKey'],
-        desc: 'Use Ledger for signing',
-        type: 'boolean',
-        default: false
-    })
-        .option('ledgerPath', {
-        desc: 'HD key path',
-        type: 'string',
-        default: "44'/397'/0'/0'/1'"
-    })
-        .option('privateKey', {
-        desc: 'Access key to use for signing',
-        type: 'string',
-        default: null
-    })
+        .option('privateKey', privateKeyOption)
         .option('networkId', {
         desc: 'Which network to use. Supports: mainnet, testnet, custom',
         type: 'string',
@@ -61,29 +46,21 @@ const deployCommand = {
         desc: 'Forcefully deploy the contract',
         type: 'boolean',
         default: false
-    }),
+    })
+        .implies('initArgs', 'initFunction').implies('initFunction', 'initArgs'),
     handler: (argv) => deployContract(argv)
 };
 async function askOverrideContract(prevCodeHash) {
     if (prevCodeHash !== '11111111111111111111111111111111') {
-        const rl = createInterface({ input, output });
-        try {
-            const answer = await rl.question(`This account already has a deployed contract [ ${prevCodeHash} ]. Do you want to proceed? (y/n) `);
-            return ['y', 'yes'].includes(answer.trim().toLowerCase());
-        }
-        finally {
-            rl.close();
-        }
+        return confirmAll([`This account already has a deployed contract [ ${prevCodeHash} ]. Do you want to proceed?`]);
     }
     return true;
 }
 async function deployContract(options) {
-    const provider = new JsonRpcProvider({ url: getConfig(options.networkId).nodeUrl ?? '' });
+    const provider = getProvider(options.networkId);
     const signer = await signerFromOpts({
         useAccount: options.accountId,
         privateKey: options.privateKey,
-        signWithLedger: options.signWithLedger,
-        ledgerPath: options.ledgerPath,
         networkId: options.networkId
     });
     const account = new Account(options.accountId, provider, signer);
@@ -93,15 +70,6 @@ async function deployContract(options) {
         return;
     }
     console.log(`Deploying contract ${options.wasmFile} to ${options.accountId}`);
-    // Validate init args/function combination
-    if (options.initArgs && !options.initFunction) {
-        console.error('Must add initialization function.');
-        process.exit(1);
-    }
-    if (options.initFunction && !options.initArgs) {
-        console.error('Must add initialization arguments.\nExample: near deploy near.testnet ./out/contract.wasm --initFunction "new" --initArgs \'{"key": "value"}\'');
-        process.exit(1);
-    }
     // Read WASM file
     const wasmBytes = fs.readFileSync(options.wasmFile);
     // Build actions

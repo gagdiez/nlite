@@ -1,4 +1,12 @@
 #!/bin/bash
+cd "$(dirname "$0")/.." || exit 1
+
+if [[ -f .env.test ]]; then
+    set -a
+    source .env.test || exit 1
+    set +a
+fi
+
 export NODE_ENV=${NODE_ENV:-test}
 OVERALL_RESULT=0
 
