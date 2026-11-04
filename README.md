@@ -58,11 +58,15 @@ near send-near ... --networkId mainnet
 ```
 
 > [!WARNING]
-> In previous versions, `nlite` used `NEAR_ENV` to set the network. This can still be used, but `NEAR_NETWORK` has priority over `NEAR_ENV` if both are set.
+> Use `NEAR_NETWORK` to set the default network, or `--networkId` to choose it for a command. `NEAR_ENV` is no longer read.
 
 ---
 
 ### Custom RPC server selection
+The defaults are FastNEAR's [regular RPC endpoints](https://docs.fastnear.com/rpc):
+`https://rpc.mainnet.fastnear.com` for mainnet and
+`https://rpc.testnet.fastnear.com` for testnet.
+
 You can set custom RPC server URL by setting this env variables:
 ```bash
 NEAR_MAINNET_RPC
@@ -72,8 +76,19 @@ Clear them in case you want to get back to the default RPC server.
 
 Example:
 ```bash
-export NEAR_TESTNET_RPC=https://rpc.testnet.near.org
+export NEAR_TESTNET_RPC=https://rpc.testnet.fastnear.com
 ```
+
+For RPC servers that use Bearer authentication, set `NEAR_RPC_API_KEY`:
+
+```bash
+export NEAR_RPC_API_KEY=your-api-key
+```
+
+All RPC commands send it as `Authorization: Bearer <key>` to the selected RPC
+server. When unset, no authentication header is added. It is not sent to the
+account creation faucet/helper.
+
 ---
 
 ## Access Keys
@@ -83,6 +98,9 @@ All keys are stored locally at the root of your `HOME` directory:
   -   `C:\Users\YOUR_ACCOUNT\.near-credentials` _(Windows)_
 
 Inside `.near-credentials`, access keys are organized in network subdirectories: `testnet`, and `mainnet`.
+
+Public and private keys must include their curve prefix, such as `ed25519:` or
+`secp256k1:`. Unprefixed keys are rejected; they are not automatically corrected.
 
 These network subdirectories contain `.JSON` objects with an:
   -   `account_id`
@@ -107,8 +125,6 @@ near add-credentials example-acct.testnet --seedPhrase "antique attitude say evo
 
 > Adds either a **full access** or **function access** key to a given account.
 
-> Optionally allows to sign with a Ledger: `--signWithLedger` `--ledgerPath`
-
 **Note:** You will use an _existing_ full access key for the account you would like to add a _new_ key to. ([`near login`](http://docs.near.org/docs/tools/near-cli#near-login))
 
 #### 1) add a `full access` key
@@ -118,7 +134,7 @@ near add-credentials example-acct.testnet --seedPhrase "antique attitude say evo
 **Example:**
 
 ```bash
-near add-key example-acct.testnet Cxg2wgFYrdLTEkMu6j5D6aEZqTb3kXbmJygS48ZKbo1S
+near add-key example-acct.testnet ed25519:Cxg2wgFYrdLTEkMu6j5D6aEZqTb3kXbmJygS48ZKbo1S
 ```
 
 <details>
@@ -151,7 +167,7 @@ near add-key example-acct.testnet Cxg2wgFYrdLTEkMu6j5D6aEZqTb3kXbmJygS48ZKbo1S
 **Example:**
 
 ```bash
-near add-key example-acct.testnet GkMNfc92fwM1AmwH1MTjF4b7UZuceamsq96XPkHsQ9vi --contract-id example-contract.testnet --method-names example_method --allowance 30000000000
+near add-key example-acct.testnet ed25519:GkMNfc92fwM1AmwH1MTjF4b7UZuceamsq96XPkHsQ9vi --contract-id example-contract.testnet --method-names example_method --allowance 30000000000
 ```
 
 <details>
@@ -171,7 +187,6 @@ near add-key example-acct.testnet GkMNfc92fwM1AmwH1MTjF4b7UZuceamsq96XPkHsQ9vi -
 ### `near delete-key`
 
 > Deletes an existing key for a given account.
-> Optionally allows to sign with a Ledger: `--signWithLedger` `--ledgerPath`
 
 -   arguments: `accountId` `publicKey`
 -   options: `--networkId`, `force`
@@ -181,7 +196,7 @@ near add-key example-acct.testnet GkMNfc92fwM1AmwH1MTjF4b7UZuceamsq96XPkHsQ9vi -
 **Example:**
 
 ```bash
-near delete-key example-acct.testnet Cxg2wgFYrdLTEkMu6j5D6aEZqTb3kXbmJygS48ZKbo1S
+near delete-key example-acct.testnet ed25519:Cxg2wgFYrdLTEkMu6j5D6aEZqTb3kXbmJygS48ZKbo1S
 ```
 
 <details>
@@ -201,7 +216,7 @@ near delete-key example-acct.testnet Cxg2wgFYrdLTEkMu6j5D6aEZqTb3kXbmJygS48ZKbo1
 > Displays a key-pair and seed-phrase and optionally stores it locally in `.near-credentials`.
 
 -   arguments: `accountId` or `none`
--   options: `--fromSeedPhrase`, `--saveImplicit`, `--queryLedgerPK`
+-   options: `--fromSeedPhrase`, `--saveImplicit`
 
 **Note:** There are several ways to use `generate-key` that return very different results. Please reference the examples below for further details.
 
@@ -324,65 +339,6 @@ Implicit account: 9c07afc7673ea0f9a20c8a279e8bbe1dd1e283254263bb3b07403e4b6fd7a4
 
 ---
 
-#### 4a) `near generate-key --queryLedgerPK`
-
-> Uses a connected Ledger device to display a public key and [implicit account](http://docs.near.org/docs/roles/integrator/implicit-accounts) using the default HD path (`"44'/397'/0'/0'/1'"`)
-
-```bash
-near generate-key --queryLedgerPK
-```
-
-You should then see the following prompt to confirm this request on your Ledger device:
-
-  Make sure to connect your Ledger and open NEAR app
-  Getting Public Key from Ledger...
-
-After confirming the request on your Ledger device, a public key and implicit accountId will be displayed.
-
-<details>
-<summary><strong>Example Response</strong></summary>
-<p>
-
-```bash
-Using public key: ed25519:B22RP10g695wyeRvKIWv61NjmQZEkWTMzAYgdfx6oSeB2
-Implicit account: 42c320xc20739fd9a6bqf2f89z61rd14efe5d3de234199bc771235a4bb8b0e1
-```
-
-</p>
-</details>
-
----
-
-#### 3b) `near generate-key --queryLedgerPK --ledgerPath="HD path you specify"`
-
-> Uses a connected Ledger device to display a public key and [implicit account](http://docs.near.org/docs/roles/integrator/implicit-accounts) using a custom HD path.
-
-```bash
-near generate-key --queryLedgerPK --ledgerPath="44'/397'/0'/0'/2'"
-```
-
-You should then see the following prompt to confirm this request on your Ledger device:
-
-    Make sure to connect your Ledger and open NEAR app
-    Waiting for confirmation on Ledger...
-
-After confirming the request on your Ledger device, a public key and implicit accountId will be displayed.
-
-<details>
-<summary><strong>Example Response</strong></summary>
-<p>
-
-```bash
-Using public key: ed25519:B22RP10g695wye3dfa32rDjmQZEkWTMzAYgCX6oSeB2
-Implicit account: 42c320xc20739ASD9a6bqf2Dsaf289z61rd14efe5d3de23213789009afDsd5bb8b0e1
-```
-
-</p>
-</details>
-
-
----
-
 ### `near list-keys`
 
 > Displays all access keys for a given account.
@@ -459,7 +415,16 @@ near login
 > Creates an account using an existing account or a faucet service to pay for the account's creation and initial balance.
 
 -   arguments: `accountId`
--   options: `--initialBalance`, `--useFaucet`, `--useAccount`, `--seedPhrase`, `--publicKey`, `--signWithLedger`, `--ledgerPath`, `--useLedgerPK`, `--PkLedgerPath`
+-   options: `--initialBalance`, `--useFaucet`, `--useAccount`, `--seedPhrase`, `--publicKey`
+
+Choose either `--useFaucet` or `--useAccount`, and either `--seedPhrase` or
+`--publicKey` when supplying a key. These pairs cannot be combined.
+
+When generating an account key, the CLI saves a recovery copy before submitting
+creation. Success atomically replaces the account's local credentials. If creation
+times out or saving the final credentials fails, the error reports the recovery
+file's path. It contains the private key; keep it until you confirm which key the
+account uses. Recovery files use the same JSON format as normal credentials.
 
 **Examples:**:
 
@@ -473,26 +438,11 @@ near create-account new-acc.testnet --useAccount example-acct.testnet
 near create-account new-acc.testnet --useFaucet
 ```
 
-```bash
-# Creating a pre-funded account that can be controlled by the Ledger's public key
-near create-account new-acc.testnet --useFaucet --useLedgerPK 
-```
-
-```bash
-# Creating an account using a Ledger account
-near create-account new-acc.testnet --useAccount ledger-acct.testnet --signWithLedger
-```
-
 **Subaccount example:**
 
 ```bash
 # Using an account to create a sub-account
 near create-account sub-acct.example-acct.testnet --useAccount example-acct.testnet
-```
-
-```bash
-# Creating a sub-account using the Ledger that can also be controlled by the ledger
-near create-account sub.acc.testnet --useAccount sub.acc.testnet --signWithLedger --useLedgerPK
 ```
 
 **Example using `--initialBalance`:**
@@ -518,7 +468,7 @@ near create-account sub-acct2.example-acct.testnet --useAccount example-acct.tes
 > Deletes an account and transfers remaining balance to a beneficiary account.
 
 -   arguments: `accountId` `beneficiaryId`
--   options: `force`, `--signWithLedger`, `--ledgerPath`
+-   options: `--force`
 
 **Example:**
 
@@ -547,7 +497,6 @@ near delete-account sub-acct2.example-acct.testnet example-acct.testnet
 > Sends NEAR tokens (Ⓝ) from one account to another.
 
 - arguments: `senderId` `receiverId` `amount`
-- options: `--signWithLedger`, `--ledgerPath`
 
 **Note:** You will need a full access key for the sending account. ([`near login`](http://docs.near.org/docs/tools/near-cli#near-login))
 
@@ -614,7 +563,7 @@ near state example.testnet
 **Note:** Contract calls require a transaction fee (gas) so you will need an access key for the `--accountId` that will be charged. ([`near login`](http://docs.near.org/docs/tools/near-cli#near-login))
 
 -   arguments: `contractName` `method_name` `{ args }` `--accountId`
--   options: `--gas` `--deposit` `--signWithLedger` `--ledgerPath`
+-   options: `--gas` `--deposit`
 
 **Example:**
 

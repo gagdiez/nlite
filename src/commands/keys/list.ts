@@ -1,6 +1,5 @@
 import type { ArgumentsCamelCase, CommandModule } from 'yargs';
-import { JsonRpcProvider } from 'near-api-js';
-import { DEFAULT_NETWORK, getConfig } from '../../../config.js';
+import { DEFAULT_NETWORK, getProvider } from '../../../config.js';
 
 type ListKeysOptions = {
   accountId: string;
@@ -27,7 +26,7 @@ const listKeysCommand: CommandModule<object, ListKeysOptions> = {
 };
 
 async function viewAccessKeys(options: ListKeysOptions): Promise<void> {
-  const provider = new JsonRpcProvider({ url: getConfig(options.networkId).nodeUrl ?? '' });
+  const provider = getProvider(options.networkId);
   const accessKeys = await provider.viewAccessKeyList({ accountId: options.accountId });
 
   console.log(`Keys for account ${options.accountId}`);
