@@ -10,6 +10,7 @@
   "scripts": {
     "pretest": "rm -rf tmp-project",
     "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
     "test": "npm run test:unit && bash ./test/index.sh",
     "test:unit": "npm run build && node --test test/*.test.mjs",
     "lint": "eslint .",
