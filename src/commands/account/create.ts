@@ -13,14 +13,20 @@ import { DEFAULT_NETWORK, getProvider, getConfig } from '../../../config.js';
 import { signerFromOpts, prepareAccountCredentials } from '../../utils.js';
 import { publicKey, privateKeyOption, seedPhrase } from '../../validation.js';
 import chalk from 'chalk';
+import { createStateAccount } from './state-init.js';
 
 const network2TLA: Record<string, string> = { testnet: 'testnet', mainnet: 'near' };
 
 type CreateOptions = {
-    newAccountId: string;
+    newAccountId?: string;
     useFaucet?: boolean;
     useAccount?: string;
-    initialBalance: string;
+    initialBalance?: string;
+    stateInit?: string;
+    scheme?: 'deterministic' | 'universal';
+    dataEncoding?: 'base64' | 'utf8';
+    storageDeposit?: string;
+    quiet?: boolean;
     publicKey?: string;
     seedPhrase?: string;
     networkId: string;
@@ -28,7 +34,7 @@ type CreateOptions = {
 };
 
 const createCommand: CommandModule<object, CreateOptions> = {
-    command: 'create-account <newAccountId>',
+    command: 'create-account [newAccountId]',
     aliases: ['create'],
     describe: 'Create a new account',
     builder: (yargs) =>
@@ -36,7 +42,6 @@ const createCommand: CommandModule<object, CreateOptions> = {
             .positional('newAccountId', {
                 desc: 'Account to create (e.g. bob.testnet, sub.bob.testnet)',
                 type: 'string',
-                demandOption: true
             })
             .option('useFaucet', {
                 desc: 'Pre-fund and create through helper service (testnet only)',
@@ -48,10 +53,13 @@ const createCommand: CommandModule<object, CreateOptions> = {
                 type: 'string'
             })
             .option('initialBalance', {
-                desc: 'Number of tokens to transfer to the new account (in NEAR)',
+                desc: 'Number of tokens to transfer to a named account in NEAR (default: 1)',
                 type: 'string',
-                default: '1'
             })
+            .option('stateInit', { type: 'string', desc: 'Create a state-derived account from a JSON file; the SDK derives its ID' })
+            .option('scheme', { choices: ['deterministic', 'universal'] as const, desc: 'State-init account scheme (default: deterministic)' })
+            .option('dataEncoding', { choices: ['base64', 'utf8'] as const, desc: 'Storage key/value encoding in the state-init file (default: base64)' })
+            .option('storageDeposit', { type: 'string', desc: 'Maximum state-init storage deposit in NEAR (default: 1); unused funds are refunded' })
             .option('publicKey', {
                 desc: 'Public key to initialize the account with',
                 type: 'string',
@@ -70,7 +78,11 @@ const createCommand: CommandModule<object, CreateOptions> = {
             })
             .conflicts('publicKey', 'seedPhrase')
             .conflicts('useFaucet', 'useAccount')
+            .conflicts('stateInit', ['newAccountId', 'useFaucet', 'publicKey', 'seedPhrase', 'initialBalance'])
+            .implies('stateInit', 'useAccount')
+            .implies('scheme', 'stateInit').implies('dataEncoding', 'stateInit').implies('storageDeposit', 'stateInit')
             .check(argv => {
+                if (!argv.newAccountId && !argv.stateInit) throw new Error('Provide a newAccountId or --stateInit.');
                 if (!argv.useFaucet && !argv.useAccount) throw new Error('Please specify either --useFaucet or --useAccount');
                 if (argv.useFaucet && argv.networkId === 'mainnet') throw new Error('Pre-funding accounts is not possible on mainnet');
                 return true;
@@ -119,6 +131,17 @@ async function createWithFaucet(options: CreateOptions, publicKey: string) {
 }
 
 async function createAccount(options: CreateOptions): Promise<void> {
+    if (options.stateInit) {
+        return createStateAccount({
+            ...options,
+            stateInit: options.stateInit,
+            useAccount: options.useAccount!,
+            scheme: options.scheme ?? 'deterministic',
+            dataEncoding: options.dataEncoding ?? 'base64',
+            storageDeposit: options.storageDeposit ?? '1',
+        });
+    }
+    if (!options.newAccountId) throw new Error('Provide a newAccountId or --stateInit.');
     const provider = getProvider(options.networkId);
 
     if (!options.useFaucet && !options.useAccount) {
@@ -153,7 +176,7 @@ async function createAccount(options: CreateOptions): Promise<void> {
             await account.createAccount({
                 newAccountId: options.newAccountId,
                 publicKey: PublicKey.from(accountPublicKey),
-                nearToTransfer: nearToYocto(options.initialBalance as `${number}`),
+                nearToTransfer: nearToYocto((options.initialBalance ?? '1') as `${number}`),
             });
         }
 

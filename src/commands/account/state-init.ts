@@ -2,10 +2,8 @@ import fs from 'node:fs';
 import {
   DeterministicStateInit, UniversalStateInit, nearToYocto, type StateInitData,
 } from 'near-api-js';
-import type { CommandModule } from 'yargs';
-import { DEFAULT_NETWORK } from '../../../config.js';
 import { printResult, protocolAccount, type SigningOptions } from '../../protocol.js';
-import { privateKeyOption, publicKey, base64Args } from '../../validation.js';
+import { publicKey, base64Args } from '../../validation.js';
 
 type StateOptions = { stateInit: string; scheme: 'deterministic' | 'universal'; dataEncoding: 'base64' | 'utf8' };
 type CreateOptions = StateOptions & SigningOptions & { useAccount: string; storageDeposit: string; quiet?: boolean };
@@ -29,33 +27,12 @@ function readState(options: StateOptions): { accountId: string; deterministic?: 
   return { accountId: universal.deriveAccountId(), universal: universal.encode() };
 }
 
-export const deriveStateAccountCommand: CommandModule<object, StateOptions> = {
-  command: 'derive-state-account <stateInit>',
-  describe: 'Derive a deterministic (0s) or universal (0u) account ID offline',
-  builder: yargs => yargs
-    .positional('stateInit', { type: 'string', demandOption: true, desc: 'JSON state-init file' })
-    .option('scheme', { choices: ['deterministic', 'universal'] as const, default: 'deterministic' as const })
-    .option('dataEncoding', { choices: ['base64', 'utf8'] as const, default: 'base64' as const, desc: 'Encoding of storage keys and values in the JSON file' }),
-  handler: options => { console.log(readState(options).accountId); }
-};
-
-export const createStateAccountCommand: CommandModule<object, CreateOptions> = {
-  command: 'create-state-account <stateInit>',
-  describe: 'Fund and initialize a deterministic or universal account from its state init',
-  builder: yargs => yargs
-    .positional('stateInit', { type: 'string', demandOption: true })
-    .option('scheme', { choices: ['deterministic', 'universal'] as const, default: 'deterministic' as const })
-    .option('dataEncoding', { choices: ['base64', 'utf8'] as const, default: 'base64' as const })
-    .option('useAccount', { type: 'string', demandOption: true, desc: 'Account that funds and signs initialization' })
-    .option('storageDeposit', { type: 'string', default: '1', desc: 'Maximum storage deposit in NEAR; the protocol refunds the unused amount' })
-    .option('privateKey', privateKeyOption).option('networkId', { type: 'string', default: DEFAULT_NETWORK }),
-  handler: async options => {
+export async function createStateAccount(options: CreateOptions): Promise<void> {
     const state = readState(options);
     const account = await protocolAccount(options.useAccount, options);
     const deposit = nearToYocto(options.storageDeposit as `${number}`);
-    if (!options.quiet) console.log(`Initializing ${state.accountId}`);
+    if (!options.quiet) console.log(`Creating state-derived account ${state.accountId}`);
     printResult(state.deterministic
       ? await account.createDeterministicAccount({ stateInit: state.deterministic, deposit })
       : await account.createUniversalAccount({ stateInit: state.universal!, deposit }));
-  }
-};
+}

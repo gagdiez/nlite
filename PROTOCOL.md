@@ -9,13 +9,12 @@ client or near-cli interactive workflows were imported.
 
 | Capability | Published SDK API used | nlite entry points |
 | --- | --- | --- |
-| Global contracts (NEP-591) | Deploy, attach, query, and global references in `Account.getState()` | `deploy-global-contract`, `use-global-contract`, `view-global-contract` |
-| Gas keys (NEP-611) | Add/fund/withdraw, nonce queries, automatic V1 signing and nonce lanes | `add-gas-key`, `fund-gas-key`, `withdraw-gas-key`, `gas-key-nonces`; existing signing commands also accept gas keys |
-| Deterministic accounts (NEP-616, `0s…`) | `DeterministicStateInit`, `Account.createDeterministicAccount()` | `derive-state-account`, `create-state-account` |
-| Universal accounts (`0u…`) | `UniversalStateInit`, `Account.createUniversalAccount()`, self-bootstrap nonce handling | Same two commands with `--scheme universal` |
+| Global contracts (NEP-591) | Deploy, attach, query, and global references in `Account.getState()` | `deploy --global`, `use-global-contract`, `view-code` |
+| Gas keys (NEP-611) | Add/fund/withdraw, automatic V1 signing and nonce lanes | `add-key --gasKey`, `fund-gas-key`, `withdraw-gas-key`; existing signing commands also accept gas keys |
+| Deterministic accounts (NEP-616, `0s…`) | `DeterministicStateInit`, `Account.createDeterministicAccount()` | `create-account --stateInit` |
+| Universal accounts (`0u…`) | `UniversalStateInit`, `Account.createUniversalAccount()`, self-bootstrap nonce handling | `create-account --stateInit --scheme universal` |
 | Ed25519, secp256k1, ML-DSA-65 keys | Crypto, signing, canonical state init and `PublicKey.toHandle()` | `generate-key --curve …`; `--saveUniversal` stores key-only universal credentials |
 | Access-key pagination | `viewAccessKeyList({ afterKey, limit })`, `last_key` response | `list-keys --limit … --afterKey …` |
-| Legacy signed delegation (NEP-366) | Signing, Borsh transport, decoding and relaying | `sign-meta-call`, `relay-meta-transaction` |
 | Staking | Implemented | Omitted as previously requested |
 | Delegate V2 (tag 14) | Unavailable: removed by protocol 87 | None |
 
@@ -24,32 +23,39 @@ Do not infer availability from nearcore having a historical action struct.
 Contract host functions (yield/resume, cryptographic verification, etc.) execute
 inside WASM; they are not additional client transaction actions.
 
+Standalone address derivation, transaction signing/relaying, and nonce-lane
+inspection remain SDK workflows. Account creation derives the destination
+internally and prints it; there is no separate derive or initialize command.
+
 ## Global contracts
 
 ```sh
-nlite deploy-global-contract publisher.testnet contract.wasm --mode codeHash
-nlite deploy-global-contract publisher.testnet contract.wasm --mode accountId
-nlite view-global-contract --globalAccountId publisher.testnet
+nlite deploy publisher.testnet contract.wasm --global codeHash
+nlite deploy publisher.testnet contract.wasm --global accountId
+nlite view-code --globalAccountId publisher.testnet
+nlite view-code consumer.testnet
 nlite use-global-contract consumer.testnet --globalAccountId publisher.testnet
 # Or use --codeHash with the immutable base58 hash returned by RPC.
 ```
 
 Hash deployment is immutable. Account-ID deployment lets the publisher update
-code for every consumer. `use-global-contract` prompts before replacing a contract;
+code for every consumer. Global publication does not replace the publisher's
+own deployed code and cannot be combined with initialization options.
+`use-global-contract` prompts before replacing a contract;
 `--force` bypasses that prompt. Global code distribution can lag publication.
 
 ## Gas keys
 
 ```sh
-nlite add-gas-key owner.testnet ed25519:PUBLIC_KEY --numNonces 2
+nlite add-key owner.testnet ed25519:PUBLIC_KEY --gasKey --numNonces 2
 nlite fund-gas-key owner.testnet ed25519:PUBLIC_KEY 0.5 --useAccount payer.testnet
-nlite gas-key-nonces owner.testnet ed25519:PUBLIC_KEY
 nlite send-near owner.testnet receiver.testnet 0.1 --privateKey ed25519:GAS_PRIVATE_KEY
 nlite withdraw-gas-key owner.testnet ed25519:PUBLIC_KEY 0.1
 ```
 
 Add `--contractId contract.testnet --methodNames methodOne methodTwo` for a
-function-call gas key. A gas key starts unfunded. The SDK selects nonce lanes;
+function-call gas key. `--numNonces` requires `--gasKey`, and gas keys do not accept
+`--allowance`. A gas key starts unfunded. The SDK selects nonce lanes;
 ordinary transaction deposits still come from the account balance. Gas-key
 withdrawals return funds to the owning account. Full-access gas keys count as
 full-access keys in deletion confirmations, including across paginated listings. ML-DSA deletion matches the full public key
@@ -78,15 +84,18 @@ contract state. Universal accounts can omit code and add `accessKeys` containing
 prefixed public keys. Storage and key handles are canonically ordered by the SDK.
 
 ```sh
-nlite derive-state-account state.json --dataEncoding utf8
-nlite create-state-account state.json --dataEncoding utf8 --useAccount payer.testnet --storageDeposit 1
-nlite derive-state-account universal.json --scheme universal
-nlite create-state-account universal.json --scheme universal --useAccount payer.testnet --storageDeposit 1
+nlite create-account --stateInit state.json --dataEncoding utf8 --useAccount payer.testnet --storageDeposit 1
+nlite create-account --stateInit universal.json --scheme universal --useAccount payer.testnet --storageDeposit 1
 ```
 
 **The state-init deposit pays only storage staking. Excess is refunded; it does
 not become spending balance.** Use `send-near` to fund the derived ID separately.
 Reapplying state init preserves existing state; it does not reset the account.
+
+`--stateInit` requires `--useAccount`; it cannot be combined with a named account
+ID, `--useFaucet`, `--publicKey`, `--seedPhrase`, or `--initialBalance`. Put the
+code, storage and access keys in the JSON file. `--scheme`, `--dataEncoding` and
+`--storageDeposit` only apply to state-derived creation.
 
 A universal account may also receive funds before initialization. Then use its
 own derived ID as `--useAccount` with a private key committed in `accessKeys`.
@@ -105,32 +114,19 @@ page size and `--afterKey` with the returned `last_key` to continue. The cursor 
 opaque; do not remove or change its prefix. Key deletion follows the pages before
 checking whether the selected key is the last full-access key.
 
-## Delegation
-
-```sh
-SIGNED=$(nlite sign-meta-call sender.testnet contract.testnet method '{"argument":"value"}')
-nlite relay-meta-transaction relayer.testnet "$SIGNED"
-```
-
-The first command reads chain state and signs without submitting a transaction;
-its output is a base64 Borsh signed delegate. The relayer pays transaction gas;
-the sender pays any attached deposit. `--gas`, `--deposit`, `--depositYocto`,
-`--base64` and `--blockHeightTtl` control the delegated call. This is legacy
-delegation, not the removed Delegate V2 gas-key flow.
-
 ## Verification
 
 - SDK unit tests compare canonical encodings and account IDs against upstream
   vectors, including ML-DSA handle domain separation.
 - SDK integration tests run Sandbox 2.14.0: global publication, deterministic and
   universal contract storage, universal signing on all three curves, prefunded
-  self-bootstrap and delegated transaction execution.
+  self-bootstrap.
 - CLI tests use real SDK action construction, Borsh serialization and signatures
   with mocked submission; they verify argument relationships and both credential
   sources. `npm run test:unit` runs these without public RPC or faucet calls.
 - `npm run test:protocol` builds nlite and invokes its actual executable against
   Sandbox 2.14.0, checking gas-key spending, state-init storage, prefunded ML-DSA
-  self-bootstrap and the observable result of a delegated call. Its `near-sandbox`
+  self-bootstrap and contract calls through global code. Its `near-sandbox`
   dev dependency is installed with this project; the SDK comes from npm.
 - The public-network bash suite was not run for this work. No faucet requests or
   public-network transactions were used for verification.

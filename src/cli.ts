@@ -13,11 +13,10 @@ import addCredentialsCommand from './commands/credentials/add.js';
 import generateKeyCommand from './commands/credentials/generate.js';
 import storageCommand from './commands/contract/storage.js';
 import sendCommand from './commands/transactions/send.js';
-import { signMetaCallCommand, relayMetaCommand } from './commands/transactions/meta.js';
 import statusCommand from './commands/transactions/status.js';
-import { deployGlobalCommand, useGlobalCommand, viewGlobalCommand } from './commands/contract/global.js';
-import { addGasKeyCommand, fundGasKeyCommand, withdrawGasKeyCommand, gasKeyNoncesCommand } from './commands/keys/gas.js';
-import { deriveStateAccountCommand, createStateAccountCommand } from './commands/account/state-init.js';
+import { useGlobalCommand } from './commands/contract/global.js';
+import viewCodeCommand from './commands/contract/code.js';
+import { fundGasKeyCommand, withdrawGasKeyCommand } from './commands/keys/gas.js';
 
 yargs(hideBin(process.argv))
   .strict()
@@ -36,17 +35,10 @@ yargs(hideBin(process.argv))
   .command(storageCommand)
   .command(sendCommand)
   .command(statusCommand)
-  .command(signMetaCallCommand)
-  .command(relayMetaCommand)
-  .command(deployGlobalCommand)
   .command(useGlobalCommand)
-  .command(viewGlobalCommand)
-  .command(addGasKeyCommand)
+  .command(viewCodeCommand)
   .command(fundGasKeyCommand)
   .command(withdrawGasKeyCommand)
-  .command(gasKeyNoncesCommand)
-  .command(deriveStateAccountCommand)
-  .command(createStateAccountCommand)
   .option('quiet', {
     alias: ['q'],
     desc: 'Suppresses extra output',
