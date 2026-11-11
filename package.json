@@ -2,6 +2,7 @@
   "name": "nlite",
   "version": "1.0.0",
   "type": "module",
+  "packageManager": "pnpm@10.28.0",
   "description": "Simple CLI for interacting with NEAR Protocol",
   "main": "dist/src/cli.js",
   "bin": {
@@ -15,7 +16,8 @@
     "test:unit": "npm run build && node --test test/*.test.mjs",
     "lint": "eslint .",
     "fix": "eslint . --fix",
-    "start": "node dist/src/cli.js"
+    "start": "node dist/src/cli.js",
+    "test:protocol": "npm run build && node test/protocol-sandbox.mjs"
   },
   "repository": {
     "type": "git",
@@ -33,12 +35,13 @@
     "@types/yargs": "^17.0.35",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
+    "near-sandbox": "0.3.4",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.1"
   },
   "dependencies": {
     "chalk": "^6.0.1",
-    "near-api-js": "^7.4.0",
+    "near-api-js": "^7.5.1",
     "yargs": "^18.2.0"
   },
   "keywords": [
@@ -46,7 +49,8 @@
   ],
   "files": [
     "bin",
-    "dist"
+    "dist",
+    "PROTOCOL.md"
   ],
   "engines": {
     "node": "^22.22.2 || >=24.0.0"
