@@ -13,13 +13,23 @@ const command: CommandModule<object, Options> = {
     .option('privateKey', privateKeyOption).option('networkId', { type: 'string', default: DEFAULT_NETWORK }).option('force', { type: 'boolean', default: false }),
   handler: (argv: ArgumentsCamelCase<Options>) => deleteKey(argv)
 };
+function isFullAccess(permission: unknown): boolean {
+  return permission === 'FullAccess' || (typeof permission === 'object' && permission !== null && 'GasKeyFullAccess' in permission);
+}
 async function deleteKey(options: Options): Promise<void> {
   const provider = getProvider(options.networkId);
-  const keys = await provider.viewAccessKeyList({ accountId: options.accountId });
-  const target = keys.keys.find(key => key.public_key === options.accessKey);
+  const keys = await provider.viewAccessKeyList({ accountId: options.accountId, limit: 100 });
+  let cursor = keys.last_key;
+  while (cursor) {
+    const page = await provider.viewAccessKeyList({ accountId: options.accountId, afterKey: cursor, limit: 100 });
+    keys.keys.push(...page.keys);
+    cursor = page.last_key;
+  }
+  const handle = PublicKey.from(options.accessKey).toHandle();
+  const target = keys.keys.find(key => key.public_key === handle);
   if (!target) { console.log(`Key ${options.accessKey} does not exist on ${options.accountId}.`); return; }
-  if (!options.force && target.access_key.permission === 'FullAccess') {
-    const fullAccessCount = keys.keys.filter(key => key.access_key.permission === 'FullAccess').length;
+  if (!options.force && isFullAccess(target.access_key.permission)) {
+    const fullAccessCount = keys.keys.filter(key => isFullAccess(key.access_key.permission)).length;
     const questions = [`Key ${options.accessKey} is a full-access key. Continue deleting it?`];
     if (fullAccessCount === 1) questions.push(`It is the last full-access key for ${options.accountId}; this can permanently lock the account. Continue?`);
     if (!(await confirmAll(questions))) return;

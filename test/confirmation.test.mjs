@@ -10,14 +10,16 @@ import deploy from './dist/src/commands/contract/deploy.js';
 const pair = KeyPair.fromRandom('ed25519');
 const publicKey = pair.getPublicKey().toString();
 globalThis.fetch = async () => { throw new Error('Unexpected network request'); };
-JsonRpcProvider.prototype.viewAccessKeyList = async () => ({keys:[{public_key:publicKey,access_key:{permission:'FullAccess'}}]});
+JsonRpcProvider.prototype.viewAccessKeyList = async () => ({keys:[{public_key:publicKey,access_key:{permission:process.argv[1] === 'gas-key' ? {GasKeyFullAccess:{balance:'0',num_nonces:1}} : 'FullAccess'}}]});
 JsonRpcProvider.prototype.viewAccount = async () => ({});
-Account.prototype.getState = async () => ({ codeHash:'already-deployed' });
+Account.prototype.getState = async () => process.argv[1] === 'global-deploy'
+  ? { codeHash:'11111111111111111111111111111111', globalContract:{accountId:'publisher.testnet'} }
+  : { codeHash:'already-deployed' };
 Account.prototype.signAndSendTransaction = async () => { console.log('TRANSACTION_SUBMITTED'); return {}; };
 const options = {accountId:'example.testnet', networkId:'testnet', privateKey:pair.toString(), force:process.argv[2] === 'force'};
-if (process.argv[1] === 'key') await deleteKey.handler({...options, accessKey:publicKey});
+if (['key', 'gas-key'].includes(process.argv[1])) await deleteKey.handler({...options, accessKey:publicKey});
 if (process.argv[1] === 'account') await deleteAccount.handler({...options, beneficiaryId:'beneficiary.testnet'});
-if (process.argv[1] === 'deploy') await deploy.handler({...options, wasmFile:'test/res/guest_book.wasm'});
+if (['deploy', 'global-deploy'].includes(process.argv[1])) await deploy.handler({...options, wasmFile:'test/res/guest_book.wasm'});
 `;
 
 function run(command, input, force = false) {
@@ -45,4 +47,14 @@ test('declining account deletion or contract replacement never submits a transac
 
 test('--force bypasses confirmation without reading stdin', () => {
   for (const command of ['key', 'account', 'deploy']) assert.equal(run(command, '', true), true);
+});
+
+test('the last full-access gas key receives both deletion confirmations', () => {
+  assert.equal(run('gas-key', 'y\ny\n'), true);
+  for (const input of ['y\n', 'n\n', 'y\nn\n']) assert.equal(run('gas-key', input), false);
+});
+
+test('replacing global contract code with a local deployment asks for confirmation', () => {
+  assert.equal(run('global-deploy', 'n\n'), false);
+  assert.equal(run('global-deploy', 'y\n'), true);
 });

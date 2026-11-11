@@ -1,2 +1,2 @@
-overrides:
-  near-api-js: link:../near-api-js
+packages:
+  - .

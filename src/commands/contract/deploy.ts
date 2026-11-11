@@ -84,7 +84,7 @@ async function deployContract(options: DeployOptions): Promise<void> {
 
   const account = new Account(options.accountId, provider, signer);
   const prevState = await account.getState();
-  const prevCodeHash = prevState.codeHash;
+  const prevCodeHash = prevState.globalContract ? JSON.stringify(prevState.globalContract) : prevState.codeHash;
 
   if (!options.force && !(await askOverrideContract(prevCodeHash))) {
     return;
