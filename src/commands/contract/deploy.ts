@@ -9,10 +9,11 @@ import { confirmAll } from '../../confirm.js';
 type DeployOptions = {
   accountId: string;
   wasmFile: string;
+  global?: 'codeHash' | 'accountId';
   initFunction?: string;
   initArgs?: string;
-  initGas: string;
-  initDeposit: string;
+  initGas?: string;
+  initDeposit?: string;
   networkId: string;
 
   privateKey?: string | null;
@@ -21,7 +22,7 @@ type DeployOptions = {
 
 const deployCommand: CommandModule<object, DeployOptions> = {
   command: 'deploy <accountId> <wasmFile>',
-  describe: 'Deploy a contract to an existing account (optionally initializing it)',
+  describe: 'Deploy local contract code or publish reusable global code',
   builder: (yargs) =>
     yargs
       .positional('accountId', {
@@ -34,6 +35,8 @@ const deployCommand: CommandModule<object, DeployOptions> = {
         type: 'string',
         demandOption: true
       })
+      .option('global', { choices: ['codeHash', 'accountId'] as const, desc: 'Publish global code by immutable hash or updatable account ID' })
+      .conflicts('global', ['initFunction', 'initArgs', 'initGas', 'initDeposit'])
       .option('initFunction', {
         desc: 'Initialization method',
         type: 'string'
@@ -45,12 +48,10 @@ const deployCommand: CommandModule<object, DeployOptions> = {
       .option('initGas', {
         desc: 'Gas for initialization call (default: 30 TGas)',
         type: 'string',
-        default: teraToGas('30').toString()
       })
       .option('initDeposit', {
         desc: 'Deposit in NEAR to send for initialization call (default: 0)',
         type: 'string',
-        default: '0'
       })
       .option('privateKey', privateKeyOption)
       .option('networkId', {
@@ -83,6 +84,11 @@ async function deployContract(options: DeployOptions): Promise<void> {
   });
 
   const account = new Account(options.accountId, provider, signer);
+  if (options.global) {
+    const result = await account.deployGlobalContract(fs.readFileSync(options.wasmFile), options.global);
+    console.log(JSON.stringify(result, (_, value) => typeof value === 'bigint' ? value.toString() : value, 2));
+    return;
+  }
   const prevState = await account.getState();
   const prevCodeHash = prevState.globalContract ? JSON.stringify(prevState.globalContract) : prevState.codeHash;
 
@@ -104,8 +110,8 @@ async function deployContract(options: DeployOptions): Promise<void> {
       actions.functionCall(
         options.initFunction,
         parsedArgs,
-        BigInt(options.initGas),
-        nearToYocto(options.initDeposit as `${number}`)
+        BigInt(options.initGas ?? teraToGas('30')),
+        nearToYocto((options.initDeposit ?? '0') as `${number}`)
       )
     );
   }

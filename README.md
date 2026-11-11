@@ -37,23 +37,22 @@ _Click on a command for more information and examples._
 | [`near delete-key`](#near-delete-key)           | deletes an access key from an account                                                     |
 | [`near generate-key`](#near-generate-key)       | generates a key pair and **optionally** stores it locally as credentials for an accountId |
 | [`near list-keys`](#near-keys)                  | displays all access keys and their details for a given account                            |
-| [`nlite add-gas-key`, `fund-gas-key`, `withdraw-gas-key`, `gas-key-nonces`](PROTOCOL.md#gas-keys) | manage gas keys and nonce lanes |
+| [`nlite add-key --gasKey`, `fund-gas-key`, `withdraw-gas-key`](PROTOCOL.md#gas-keys) | create and manage prepaid gas keys |
 | **ACCOUNTS**                                    |                                                                                           |
 | [`near create-account`](#near-create-account)   | creates a new account, either using a faucet to fund it, or an account saved locally      |
 | [`near delete-account`](#near-delete)           | deletes an account and transfers remaining balance to a beneficiary account               |
 | [`near list-keys`](#near-keys)                  | displays all access keys for a given account                                              |
 | [`near send-near`](#near-send)                  | sends tokens from one account to another                                                  |
 | [`near state`](#near-state)                     | shows general details of an account                                                       |
-| [`nlite derive-state-account`, `create-state-account`](PROTOCOL.md#state-derived-accounts) | derive and initialize deterministic or universal accounts |
+| [`nlite create-account --stateInit`](PROTOCOL.md#state-derived-accounts) | create deterministic or universal accounts from a state file |
 | **CONTRACTS**                                   |                                                                                           |
 | [`near call`](#near-call)                       | makes a contract call which can invoke `change` _or_ `view` methods                       |
 | [`near deploy`](#near-deploy)                   | deploys a smart contract to the NEAR blockchain                                           |
 | [`near storage`](#near-storage)                 | Shows the storage state of a given contract, i.e. the data stored in a contract           |
 | [`near view`](#near-view)                       | makes a contract call which can **only** invoke a `view` method                           |
-| [`nlite deploy-global-contract`, `use-global-contract`, `view-global-contract`](PROTOCOL.md#global-contracts) | publish, attach and query reusable code |
+| [`nlite deploy --global`, `use-global-contract`, `view-code`](PROTOCOL.md#global-contracts) | publish, attach and query contract code |
 | **TRANSACTIONS**                                |                                                                                           |
 | [`near tx-status`](#near-tx-status)             | queries a transaction's status by `txHash`                                                |
-| [`nlite sign-meta-call`, `relay-meta-transaction`](PROTOCOL.md#delegation) | sign delegated calls and submit them through a relayer |
 
 ---
 
